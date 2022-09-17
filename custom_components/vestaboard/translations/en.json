@@ -1,0 +1,17 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Setup Vestaboard Local API",
+                "data": {
+                    "local_api_host": "Vestaboard Host",
+                    "local_api_key": "Vestaboard Local API Key"
+                },
+                "data_description": {
+                    "local_api_host": "IP adddress or hostname of your Vestaboard.",
+                    "local_api_key": "The local API Key can be obtained through activating the local API on your Vestaboard. To do so you will need to receive a Local API Enablement Key directly from Vestaboard."
+                }
+            }
+        }
+    }
+}
