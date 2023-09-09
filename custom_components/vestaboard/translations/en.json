@@ -1,15 +1,42 @@
 {
     "config": {
+        "error": {
+          "connection_error": "Failed to connect to Vestaboard. Wrong host or IP address?"
+        },
         "step": {
-            "user": {
+            "host": {
                 "title": "Setup Vestaboard Local API",
                 "data": {
-                    "local_api_host": "Vestaboard Host",
+                    "local_api_host": "Vestaboard Host"
+                },
+                "data_description": {
+                    "local_api_host": "IP adddress or hostname of your Vestaboard."
+                }
+            },
+            "local_api_key": {
+                "title": "Setup Vestaboard Local API",
+                "data": {
                     "local_api_key": "Vestaboard Local API Key"
                 },
                 "data_description": {
-                    "local_api_host": "IP adddress or hostname of your Vestaboard.",
-                    "local_api_key": "The local API Key can be obtained through activating the local API on your Vestaboard. To do so you will need to receive a Local API Enablement Key directly from Vestaboard."
+                    "local_api_key": "A local API key can be obtained through activating the local API on your Vestaboard using a local API enablement token. Please select \"I have a local API enablement token and need a local API key\" in the previous step if you do not have a local API key."
+                }
+            },
+            "ask_need_local_api_key": {
+                "title": "Setup Vestaboard Local API",
+                "description": "If you have enabled local API on your Vestaboard before, you should have a local API key. Otherwise you will need to get a local API enablement token from Vestaboard directly. You can submit for a local API enablement token [here](https://www.vestaboard.com/local-api).  \n*Note: re-enabling local API using your local API enablement token is possible, but will invalidate existing local API keys.*",
+                "menu_options": {
+                  "local_api_enablement_token": "I have a local API enablement token, but need a local API key",
+                  "local_api_key": "I already have a local API key"
+                }
+            },
+            "local_api_enablement_token": {
+                "title": "Setup Vestaboard Local API",
+                "data": {
+                    "local_api_enablement_token": "Vestaboard Local API Enablement Token"
+                },
+                "data_description": {
+                    "local_api_enablement_token": "A local API enablement token can be obtained directly from Vestaboard here. After having received your enablement token, you can use it activate the local API on your Vestaboard."
                 }
             }
         }

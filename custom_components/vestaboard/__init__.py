@@ -112,7 +112,7 @@ class Vestaboard:
         except requests.Timeout:
             _LOGGER.error('Connection attempt timed out connecting to %s', self.host)
             return None
-        except requests.exceptions.RequestException as err:
+        except requests.exceptions.RequestException:
             _LOGGER.error('An unknown request exception occured connecting to %s', self.host)
             return None
         except:
@@ -147,7 +147,7 @@ class Vestaboard:
         except requests.Timeout:
             _LOGGER.error('Connection attempt timed out connecting to %s', self.host)
             return False
-        except requests.exceptions.RequestException as err:
+        except requests.exceptions.RequestException:
             _LOGGER.error('An unknown request exception occured connecting to %s', self.host)
             return False
         except:

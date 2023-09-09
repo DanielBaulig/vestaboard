@@ -4,10 +4,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity
 )
 
-import json
-
 from .const import DOMAIN
-
 
 class VestaboardLineEntity(CoordinatorEntity, SensorEntity):
     _attr_has_entity_name = True
