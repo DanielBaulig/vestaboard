@@ -1,9 +1,10 @@
 """ Vestaboard Integration """
 from datetime import timedelta
-import requests
+import aiohttp
 import logging
 import json
 import async_timeout
+from contextlib import asynccontextmanager
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -86,6 +87,24 @@ character_map = {
 inverted_character_map = {v:k for k,v in character_map.items()}
 
 class Vestaboard:
+    @staticmethod
+    async def enable(host, enablement_token):
+        uri = f"http://{host}:7000/local-api/enablement"
+        headers = {
+            "X-Vestaboard-Local-Api-Enablement-Token": enablement_token,
+        }
+
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.post(uri) as response:
+                # Vestaboard response with text/plain content type
+                json = await response.json(content_type="text/plain")
+
+                if not response.status in range(200, 299) or "apiKey" not in json:
+                    return None
+
+        return json.get("apiKey")
+
+
     def __init__(self, host, local_api_key):
         self.host = host
         self.local_api_key = local_api_key
@@ -100,66 +119,53 @@ class Vestaboard:
     def local_api_uri(self):
         return f"http://{self.host}:7000/local-api/message"
 
-    def read(self):
+    @asynccontextmanager
+    async def session(self):
+        async with aiohttp.ClientSession(headers=self.auth_headers) as session:
+            yield session
+
+    @asynccontextmanager
+    async def post(self, lines):
         uri = self.local_api_uri
+        _LOGGER.debug('POST being sent to %s', uri)
+        async with self.session() as session:
+            yield await session.post(uri, data=lines)
 
-        try:
-            _LOGGER.debug('Read being sent to %s', uri)
-            response = requests.get(uri, headers=self.auth_headers)
-        except ConnectionError:
-            _LOGGER.error('Failed to connect to %s', self.host)
-            return None
-        except requests.Timeout:
-            _LOGGER.error('Connection attempt timed out connecting to %s', self.host)
-            return None
-        except requests.exceptions.RequestException:
-            _LOGGER.error('An unknown request exception occured connecting to %s', self.host)
-            return None
-        except:
-            _LOGGER.error('An unknown exception occured connecting to %s', self.host)
-            return None
-
-        if response.status_code < 200 or response.status_code > 299:
-            _LOGGER.error('Read failed with error code %d and message %s', response.status_code, response.text)
-            return None
-
-        return [ ''.join([inverted_character_map[code] for code in line]) for line in response.json()['message'] ]
-
-    def post(self, lines):
+    @asynccontextmanager
+    async def get(self):
         uri = self.local_api_uri
+        _LOGGER.debug('GET being sent to %s', uri)
+        async with self.session() as session:
+            yield await session.get(uri)
 
+    async def read(self):
+        async with self.get() as response:
+            if response.status not in range(200, 299):
+                _LOGGER.error('Read failed with error code %d and message %s', response.status, await response.text())
+                return None
+                
+            json = await response.json(content_type="text/plain")
+        
+        return self.decode_lines(json['message'])
+    
+    @staticmethod
+    def encode_lines(lines):
         lines += [''] * (6 - len(lines))
         normalized_lines = ['{:<22}'.format(line[:22].upper()) for line in lines]
         encoded_lines = [[character_map.get(char, 60) for char in line] for line in normalized_lines]
 
-        lines_json = json.dumps(encoded_lines)
+        return json.dumps(encoded_lines)
 
-        try:
-            _LOGGER.debug('Request being sent to %s with payload %s', uri, lines_json)
-            response = requests.post(
-                uri,
-                data=lines_json,
-                headers=self.auth_headers,
-            )
-        except ConnectionError:
-            _LOGGER.error('Failed to connect to %s', self.host)
-            return False
-        except requests.Timeout:
-            _LOGGER.error('Connection attempt timed out connecting to %s', self.host)
-            return False
-        except requests.exceptions.RequestException:
-            _LOGGER.error('An unknown request exception occured connecting to %s', self.host)
-            return False
-        except:
-            _LOGGER.error('An unknown exception occured connecting to %s', self.host)
-            return False
+    @staticmethod
+    def decode_lines(lines):
+        return [ ''.join([inverted_character_map[code] for code in line]) for line in lines ]
 
-        if response.status_code < 200 or response.status_code > 299:
-            _LOGGER.error('Update failed with error code %d and message %s', response.status_code, response.text)
-            return False
-
+    async def write(self, lines):
+        async with self.post(self.encode_lines(lines)) as response:
+            if response.status not in range(200, 299):
+                _LOGGER.error('Write failed with error code %d and message %s', response.status, await response.text())
+                return False
         return True
-
 
 class VestaboardCoordinator(DataUpdateCoordinator):
     def __init__(self, hass, vestaboard):
@@ -171,7 +177,7 @@ class VestaboardCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         async with async_timeout.timeout(10):
-            data = await self.hass.async_add_executor_job(lambda: self.vestaboard.read())
+            data = await self.vestaboard.read()
             if data is None:
                 raise UpdateFailed("Couldn't update vestaboard lines sensor.")
 
@@ -202,7 +208,7 @@ async def async_setup_entry(hass, config):
 
     async def post(call):
         lines = call.data.get(ATTR_LINES)
-        result = await hass.async_add_executor_job(lambda: vestaboard.post(lines))
+        result = await vestaboard.write(lines)
         # Update line sensors after an update
         config.async_create_task(hass, coordinator.async_request_refresh())
         return result

@@ -4,6 +4,7 @@ from .const import DOMAIN, CONF_LOCAL_API_KEY, CONF_LOCAL_API_HOST
 
 import voluptuous as vol
 import aiohttp
+from . import Vestaboard
 
 class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input):
@@ -116,23 +117,14 @@ class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             local_api_enablement_token = user_input.get("local_api_enablement_token").strip()
             local_api_host = getattr(self, CONF_LOCAL_API_HOST)
+            local_api_key = await Vestaboard.enable(local_api_host, local_api_enablement_token)
 
-            uri = f"http://{local_api_host}:7000/local-api/enablement"
-            headers = {
-                "X-Vestaboard-Local-Api-Enablement-Token": local_api_enablement_token,
-            }
-            async with aiohttp.ClientSession(headers=headers) as session:
-                async with session.post(uri) as response:
-                    # Vestaboard response with text/plain content type
-                    json = await response.json(content_type="text/plain")
-
-                    if not response.status in range(200, 299) or "apiKey" not in json:
-                        errors["base"] = "invalid_enablement_token"
+            if local_api_key is None:
+                errors["base"] = "invalid_enablement_token"
 
             if len(errors) == 0:
-                setattr(self, CONF_LOCAL_API_KEY, json.get("apiKey"))
+                setattr(self, CONF_LOCAL_API_KEY, local_api_key)
                 return await self.async_step_local_api_key(None)
-
 
         return self.async_show_form(
             step_id="local_api_enablement_token", data_schema=vol.Schema({

@@ -4,7 +4,7 @@
     "documentation": "https://www.github.com/DanielBaulig/vestaboard/wiki",
     "issue_tracker": "https://www.github.com/DanielBaulig/vestaboard/issues",
     "iot_class": "local_polling",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "config_flow": true,
     "dependencies": [],
     "codeowners": [],
