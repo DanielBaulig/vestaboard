@@ -4,6 +4,7 @@ services:
     container_name: hass
     image: homeassistant/home-assistant
     volumes:
+      - ./config:/config
       - ../custom_components:/config/custom_components
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped

@@ -1,1 +1,3 @@
 __pycache__/
+development/config/*
+!development/config/configuration.yaml
