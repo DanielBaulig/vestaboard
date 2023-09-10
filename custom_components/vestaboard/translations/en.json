@@ -1,7 +1,8 @@
 {
     "config": {
         "error": {
-          "connection_error": "Failed to connect to Vestaboard. Wrong host or IP address?"
+          "connection_error": "Failed to connect to Vestaboard. Wrong host or IP address?",
+          "not_vestaboard": "Host does not appear to be a Vestaboard"
         },
         "step": {
             "host": {

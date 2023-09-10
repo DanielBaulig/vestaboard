@@ -1,4 +1,5 @@
 from homeassistant import config_entries
+from homeassistant import data_entry_flow
 
 from .const import DOMAIN, CONF_LOCAL_API_KEY, CONF_LOCAL_API_HOST
 
@@ -10,27 +11,31 @@ class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input):
         return await self.async_step_host(user_input)
 
+    async def _verify_host_connection(self, local_api_host):
+        uri = f"http://{local_api_host}:7000/local-api/message"
+        headers = {
+            "X-Vestaboard-Local-Api-Key": "invalid",
+        }
+        async with aiohttp.ClientSession(headers=headers) as session:
+            try:
+                async with session.get(uri) as _:
+                    # Vestaboard will return a 200 without content
+                    # provided an invalid api key (see above).
+                    # But since that behavior is not documented we
+                    # will not verify this and assume any response
+                    # is hinting at an active Vestaboard.
+                    return True
+            except aiohttp.ClientConnectorError:
+                return False
+
     async def async_step_host(self, user_input):
         errors={}
 
         if user_input is not None:
             local_api_host = user_input.get(CONF_LOCAL_API_HOST).strip()
             # Validate host
-            uri = f"http://{local_api_host}:7000/local-api/message"
-            headers = {
-                "X-Vestaboard-Local-Api-Key": "invalid",
-            }
-            async with aiohttp.ClientSession(headers=headers) as session:
-                try:
-                    async with session.get(uri) as _:
-                        # Vestaboard will return a 200 without content
-                        # provided an invalid api key (see above).
-                        # But since that behavior is not documented we
-                        # will not verify this and assume any response
-                        # is hinting at an active Vestaboard.
-                        pass
-                except aiohttp.ClientConnectorError:
-                    errors["base"] = "connection_error"
+            if not await self._verify_host_connection(local_api_host):
+                errors["base"] = "connection_error"
 
             if len(errors) == 0:
                 setattr(
@@ -38,7 +43,7 @@ class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_LOCAL_API_HOST,
                     local_api_host,
                 )
-                return await self.async_step_ask_need_local_api_key()
+                return await self.async_step_ask_need_local_api_key(None)
 
         return self.async_show_form(
             step_id="host", data_schema=vol.Schema({
@@ -48,7 +53,7 @@ class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_ask_need_local_api_key(self):
+    async def async_step_ask_need_local_api_key(self, _):
         return self.async_show_menu(
             step_id="ask_need_local_api_key",
             menu_options=[
@@ -79,11 +84,6 @@ class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         errors["base"] = "invalid_api_key"
 
             if len(errors) == 0:
-                # Shouldn't use IP address for unique ID
-                # But not sure if we have anything better.
-                # The Vestaboard itself doesn't uniquely identify itself
-                # via the API.
-                await self.async_set_unique_id(local_api_host)
                 return self.async_create_entry(
                     title=local_api_host,
                     data={
@@ -132,3 +132,12 @@ class VestaboardConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }),
             errors=errors,
         )
+
+    async def async_step_dhcp(self, info):
+        host = info.hostname
+        conf = {CONF_LOCAL_API_HOST: host}
+        await self._async_handle_discovery_without_unique_id()
+        if not await self._verify_host_connection(host):
+            raise data_entry_flow.AbortFlow("not_vestaboard")
+        return await self.async_step_host(conf)
+

@@ -8,5 +8,8 @@
     "config_flow": true,
     "dependencies": [],
     "codeowners": [],
-    "requirements": []
+    "requirements": [],
+    "dhcp": [{
+      "hostname": "vestaboard"
+    } ]
 }
