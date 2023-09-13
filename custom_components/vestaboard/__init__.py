@@ -17,8 +17,8 @@ from .const import DOMAIN, CONF_LOCAL_API_HOST, CONF_LOCAL_API_KEY
 ATTR_LINES="lines"
 
 character_map = {
-    '~': 0,
-    ' ': 0,
+    '~': 0, # YAML friendly blank
+    ' ': 0, # Blank, i.e. white on white Vestaboard, black on black Vestaboard
     'A': 1,
     'B': 2,
     'C': 3,
@@ -75,13 +75,15 @@ character_map = {
     '/': 59,
     '?': 60,
     '°': 62,
-    '\xc1': 63,
-    '\xc2': 64,
-    '\xc3': 65,
-    '\xc4': 66,
-    '\xc5': 67,
-    '\xc6': 68,
-    '\xc7': 69,
+    '\xc1': 63, # Red
+    '\xc2': 64, # Orange
+    '\xc3': 65, # Yellow
+    '\xc4': 66, # Green
+    '\xc5': 67, # Blue
+    '\xc6': 68, # Violet
+    '\xc7': 69, # White
+    '\xc8': 70, # Black
+    '\xc9': 71, # Filled (i.e. white on black Vestaboard, black on white Vestaboard)
 }
 
 inverted_character_map = {v:k for k,v in character_map.items()}
@@ -158,7 +160,7 @@ class Vestaboard:
 
     @staticmethod
     def decode_lines(lines):
-        return [ ''.join([inverted_character_map[code] for code in line]) for line in lines ]
+        return [ ''.join([inverted_character_map.get(code, '?') for code in line]) for line in lines ]
 
     async def write(self, lines):
         async with self.post(self.encode_lines(lines)) as response:
