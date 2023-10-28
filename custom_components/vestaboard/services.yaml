@@ -1,15 +1,15 @@
 post:
   description: Posts a message to Vestaboard.
-  fields: 
+  fields:
     lines:
       name: Lines
       description: The text to post. 6 lines with up to 22 characters each. You can use the special color characters \xc1 to \xc7.
-      required: True
+      required: true
       example: |
         - First line
         - Second line
-        - 
+        -
         - Fourth Line Is too long and will get truncated
         - "\xc1\xc2\xc3\xc4\xc5\xc6\xc7"
-      selector: 
+      selector:
         object:
