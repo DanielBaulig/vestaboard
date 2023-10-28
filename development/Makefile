@@ -1,12 +1,13 @@
 INTEGRATION_DIR=../custom_components/vestaboard
 TRANSLATIONS_DIR=$(INTEGRATION_DIR)/translations
+PYTHON := python
 
 .DEFAULT_GOAL=dev-restart
 
 check-json: $(INTEGRATION_DIR)/manifest.json $(TRANSLATIONS_DIR)/*.json
 	@(for file in $^ ; do \
-		echo "python -m json.tool < $${file}" ; \
-		python -m json.tool < $${file} 1>/dev/null || exit ; \
+		echo "$(PYTHON) -m json.tool < $${file}" ; \
+		$(PYTHON) -m json.tool < $${file} 1>/dev/null || exit ; \
 	done)
 
 check-python:

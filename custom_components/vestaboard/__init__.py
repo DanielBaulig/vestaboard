@@ -210,6 +210,10 @@ async def async_setup_entry(hass, config):
 
     async def post(call):
         lines = call.data.get(ATTR_LINES)
+        if not isinstance(lines, list):
+            _LOGGER.error('Provided lines argument is not a list. Please provide a list of lines to vestaboard.post.')
+            return False
+
         result = await vestaboard.write(lines)
         # Update line sensors after an update
         config.async_create_task(hass, coordinator.async_request_refresh())
