@@ -153,7 +153,7 @@ class Vestaboard:
     @staticmethod
     def encode_lines(lines):
         lines += [''] * (6 - len(lines))
-        normalized_lines = ['{:<22}'.format(line[:22].upper()) for line in lines]
+        normalized_lines = ['{:<22}'.format((line or '')[:22].upper()) for line in lines]
         encoded_lines = [[character_map.get(char, 60) for char in line] for line in normalized_lines]
 
         return json.dumps(encoded_lines)
