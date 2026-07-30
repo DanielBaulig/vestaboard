@@ -24,6 +24,8 @@ class VestaboardLineEntity(CoordinatorEntity, SensorEntity):
 
 
 async def async_setup_entry(hass, config, async_add_entities):
+    coordinator = hass.data[DOMAIN][config.entry_id]['coordinator']
+    # Dynamically create sensors based on detected board dimensions
     async_add_entities(
-        [VestaboardLineEntity(hass.data[DOMAIN][config.entry_id]['coordinator'], line) for line in range(6)]
+        [VestaboardLineEntity(coordinator, line) for line in range(coordinator.rows)]
     )

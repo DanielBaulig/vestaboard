@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import (
 
 _LOGGER=logging.getLogger(__name__)
 
-from .const import DOMAIN, CONF_LOCAL_API_HOST, CONF_LOCAL_API_KEY
+from .const import DOMAIN, CONF_LOCAL_API_HOST, CONF_LOCAL_API_KEY, MODEL_FLAGSHIP, MODEL_NOTE, MODEL_UNKNOWN
 
 ATTR_LINES="lines"
 
@@ -110,6 +110,11 @@ class Vestaboard:
     def __init__(self, host, local_api_key):
         self.host = host
         self.local_api_key = local_api_key
+        self.rows = None
+        self.columns = None
+        self.model = MODEL_UNKNOWN
+        self._character_map = character_map.copy()
+        self._inverted_character_map = inverted_character_map.copy()
 
     @property
     def auth_headers(self):
@@ -140,6 +145,32 @@ class Vestaboard:
         async with self.session() as session:
             yield await session.get(uri)
 
+    def _detect_model(self, message):
+        """Detect board model from message dimensions and update character maps."""
+        if self.rows is None or self.columns is None:
+            self.rows = len(message)
+            self.columns = len(message[0]) if message else 0
+            
+            # Detect model based on dimensions
+            if self.rows == 6 and self.columns == 22:
+                self.model = MODEL_FLAGSHIP
+                # Code 62 is degree symbol for Flagship
+                self._character_map['°'] = 62
+                self._inverted_character_map[62] = '°'
+                _LOGGER.info('Detected Vestaboard Flagship (6x22)')
+            elif self.rows == 3 and self.columns == 15:
+                self.model = MODEL_NOTE
+                # Code 62 is heart symbol for Note
+                self._character_map['♥'] = 62
+                self._inverted_character_map[62] = '♥'
+                # Remove degree symbol mapping for Note
+                if '°' in self._character_map:
+                    del self._character_map['°']
+                _LOGGER.info('Detected Vestaboard Note (3x15)')
+            else:
+                self.model = MODEL_UNKNOWN
+                _LOGGER.warning('Unknown Vestaboard model with dimensions %dx%d', self.rows, self.columns)
+
     async def read(self):
         async with self.get() as response:
             if response.status not in range(200, 299):
@@ -147,20 +178,28 @@ class Vestaboard:
                 return None
 
             json = await response.json(content_type="text/plain")
+            message = json['message']
+            
+            # Detect model on first read
+            self._detect_model(message)
 
-        return self.decode_lines(json['message'])
+        return self.decode_lines(message)
 
-    @staticmethod
-    def encode_lines(lines):
-        lines += [''] * (6 - len(lines))
-        normalized_lines = ['{:<22}'.format((line or '')[:22].upper()) for line in lines]
-        encoded_lines = [[character_map.get(char, 60) for char in line] for line in normalized_lines]
+    def encode_lines(self, lines):
+        """Encode lines using detected board dimensions."""
+        # Use detected dimensions, fallback to Flagship if not yet detected
+        rows = self.rows if self.rows is not None else 6
+        columns = self.columns if self.columns is not None else 22
+        
+        lines += [''] * (rows - len(lines))
+        normalized_lines = [f"{(line or '')[:columns].upper():<{columns}}" for line in lines[:rows]]
+        encoded_lines = [[self._character_map.get(char, 60) for char in line] for line in normalized_lines]
 
         return json.dumps(encoded_lines)
 
-    @staticmethod
-    def decode_lines(lines):
-        return [ ''.join([inverted_character_map.get(code, '?') for code in line]) for line in lines ]
+    def decode_lines(self, lines):
+        """Decode lines using detected character map."""
+        return [ ''.join([self._inverted_character_map.get(code, '?') for code in line]) for line in lines ]
 
     async def write(self, lines):
         async with self.post(self.encode_lines(lines)) as response:
@@ -176,6 +215,21 @@ class VestaboardCoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=30)
         )
         self.vestaboard = vestaboard
+
+    @property
+    def rows(self):
+        """Return the number of rows on the board."""
+        return self.vestaboard.rows if self.vestaboard.rows is not None else 6
+
+    @property
+    def columns(self):
+        """Return the number of columns on the board."""
+        return self.vestaboard.columns if self.vestaboard.columns is not None else 22
+
+    @property
+    def model(self):
+        """Return the detected model type."""
+        return self.vestaboard.model
 
     async def _async_update_data(self):
         async with async_timeout.timeout(10):
@@ -203,7 +257,7 @@ async def async_setup_entry(hass, config):
 
     await hass.config_entries.async_forward_entry_setups(
         config,
-        ["sensor"],
+        ["sensor", "text"],
     )
 
     async def post(call):

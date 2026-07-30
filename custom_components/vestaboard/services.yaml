@@ -1,9 +1,9 @@
 post:
-  description: Posts a message to Vestaboard.
+  description: Posts a message to Vestaboard. Note: You can also use the individual text input entities for a simpler UI experience.
   fields:
     lines:
       name: Lines
-      description: The text to post. 6 lines with up to 22 characters each. You can use the special color characters \xc1 to \xc7.
+      description: The text to post as a list of lines. For Vestaboard Note (3x15), provide up to 3 lines with 15 characters each. For Vestaboard Flagship (6x22), provide up to 6 lines with 22 characters each. You can use the special color characters \xc1 to \xc7.
       required: true
       example: |
         - First line
