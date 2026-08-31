@@ -98,8 +98,8 @@ class Vestaboard:
 
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.post(uri) as response:
-                # Vestaboard response with text/plain content type
-                json = await response.json(content_type="text/plain")
+                # The board answers with text/plain today, but don't insist on it.
+                json = await response.json(content_type=None)
 
                 if not response.status in range(200, 299) or "apiKey" not in json:
                     return None
@@ -146,9 +146,26 @@ class Vestaboard:
                 _LOGGER.error('Read failed with error code %d and message %s', response.status, await response.text())
                 return None
 
-            json = await response.json(content_type="text/plain")
+            # The board answers with text/plain today, but don't insist on it.
+            body = await response.json(content_type=None)
 
-        return self.decode_lines(json['message'])
+        # The local API only reports messages that were written through it. It
+        # answers 200 with an empty body when it has none, which happens after
+        # a reboot or firmware update, or while the board shows a message set
+        # through the app. aiohttp decodes an empty body as None rather than
+        # raising. Treat it as a blank board instead of a failure: raising here
+        # aborts setup before the post service is registered, which would leave
+        # no way to write the message that clears this state.
+        if body is None:
+            _LOGGER.debug('Local API reported no message; returning blank lines.')
+            return [''] * 6
+
+        message = body.get('message') if isinstance(body, dict) else None
+        if not isinstance(message, list):
+            _LOGGER.error('Read returned an unrecognized response: %s', body)
+            return None
+
+        return self.decode_lines(message)
 
     @staticmethod
     def encode_lines(lines):
