@@ -29,6 +29,26 @@ Example:
       - Using colors: \xc1\xc2\xc3\xc4\xc5\xc6\xc7
       - Last Line
 ```
+## What colors can I use?
+These colors are mapped to the following codes.  For example:
+
+```
+     - ""
+    - "\xc1 The quick brown fox"
+    - "\xc1 jumps over the cool"
+    - "\xc1 dog."
+    - "~- AJC."
+    - ""
+```
+
+- \xc1: red
+- \xc2: orange
+- \xc3: yellow
+- \xc4: green
+- \xc5: blue
+- \xc6: purple
+- \xc7: white
+- ~: (whitespace)
 
 ## What can I do with this?
 I have created an automation, that among date, time and an uplifting message will display various data from my smart home, like temperature, air quality, the state of the HVAC units in my home as well as the upcoming appointment on the family calendar. But your imagination really is the limit here!
