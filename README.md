@@ -5,7 +5,23 @@ Vestaboard is a 6x22 characters connected split flap display for your home or of
 
 ## How do I use Vestaboard with Home Assistant?
 
-- Request a Vestaboard local API enablement token here: [Request Local API Enablement Token](https://www.vestaboard.com/local-api)
+### Setup
+
+1. Request a Vestaboard local API enablement token: [Request Local API Enablement Token](https://www.vestaboard.com/local-api)
+2. Validate you have the hostname or IP address of your Vestaboard
+
+### Recommended - Install via HACS
+
+Add the repo in HACS:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=DanielBaulig&repository=vestaboard&category=integration)
+
+Then install the **Vestaboard** integration from HACS. Set up the integration (you'll need your hostname/IP and API key):
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=vestaboard)
+
+### Manual installation
+
 - Install this custom integration code
 - Add a Vestaboard instance on your Integrations page (requiring host and local API key)
 - Use the vestaboard.post service to post to your Vestaboard
